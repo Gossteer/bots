@@ -1,0 +1,3 @@
+include:
+  - project: rdw/rabota/iac/ci
+    file: p/$CI_PROJECT_NAME.yml

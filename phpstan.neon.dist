@@ -1,0 +1,27 @@
+includes:
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-symfony/extension.neon
+    - vendor/phpstan/phpstan-symfony/rules.neon
+    - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/phpstan/phpstan-doctrine/rules.neon
+
+parameters:
+    symfony:
+        container_xml_path: var/cache/dev/App_KernelDevDebugContainer.xml
+        console_application_loader: tests/console-application.php
+    doctrine:
+        objectManagerLoader: tests/object-manager.php
+    checkGenericClassInNonGenericObjectType: false
+    reportUnmatchedIgnoredErrors: false
+    fileExtensions:
+        - php
+    level: 6
+    paths:
+        - ./src/
+    excludePaths:
+        - %currentWorkingDirectory%/tests/_*
+    ignoreErrors:
+        -
+          message: '#Property [a-zA-Z0-9\\_]+::\$id is never written, only read.#'
+          path: src/Entity/*
+

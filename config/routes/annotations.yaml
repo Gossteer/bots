@@ -1,0 +1,25 @@
+controllers:
+  resource: ../../src/Controller/
+  type: annotation
+
+api:
+  resource: ../../src/Controller/Api/V1
+  type: annotation
+  prefix: '/api/v1'
+
+admin:
+  resource: ../../src/Controller/Admin
+  type: annotation
+  prefix: '/admin'
+
+kernel:
+  resource: ../../src/Kernel.php
+  type: annotation
+
+when@dev:
+  dev:
+    resource: ../../src/Controller/Api/Dev
+    type: annotation
+    prefix: '/api/dev'
+
+

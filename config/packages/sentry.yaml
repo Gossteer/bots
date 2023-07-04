@@ -1,0 +1,17 @@
+sentry:
+  dsn: "%env(SENTRY_DSN)%"
+  register_error_listener: false # Disables the ErrorListener to avoid duplicated log in sentry
+  tracing:
+    dbal:
+      enabled: false # https://github.com/symfony/symfony/issues/45056#issuecomment-1077502963
+  options:
+    environment: '%appDeployment%'
+    enable_compression: false
+    attach_stacktrace: true
+    before_send: 'sentry.callback.before_send'
+    in_app_exclude:
+      - "%kernel.build_dir%"
+      - "%kernel.cache_dir%"
+      - "%kernel.project_dir%/vendor"
+    integrations:
+      - 'Sentry\Integration\RequestIntegration'

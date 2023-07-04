@@ -1,0 +1,94 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    appDeployment: '%env(resolve:APP_DEPLOYMENT)%'
+    app_name: '%env(string:APP_NAME)%'
+    container.dumper.inline_factories: true
+    jwt_key: '%env(resolve:APP_JWT_KEY)%'
+    metrics_namespace: telegram_bot_ca
+    doctrine_table_queue: '%env(DOCTRINE_TABLE_QUEUE)%'
+    encryption_key: '%env(ENCRYPTION_KEY)%'
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+        bind:
+            $appDeployment: '%appDeployment%'
+            $debugException: '%env(int:DEBUG_EXCEPTION)%'
+            $telegramBotGetter: '@App\Infrastructure\Bot\Telegram\TelegramBotGetter'
+            $vkBotGetter: '@App\Infrastructure\Bot\Vk\VkBotGetter'
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+            - '../src/Domain/SharedCore/Types/'
+            - '../src/Domain/SharedCore/Dto/'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones
+
+    App\Controller\:
+        resource: '../src/Controller/'
+        tags: ['controller.service_arguments']
+
+    Sentry\SentryBundle\Integration\RequestFetcher:
+        class: 'Sentry\SentryBundle\Integration\RequestFetcher'
+
+    Sentry\Integration\RequestIntegration:
+        arguments:
+            $requestFetcher: '@Sentry\SentryBundle\Integration\RequestFetcher'
+
+    sentry.callback.before_send:
+        class: 'App\Infrastructure\Sentry\BeforeSend'
+        factory: [ '@App\Infrastructure\Sentry\BeforeSend', 'getBeforeSend' ]
+
+    # https://github.com/jkobus/symfony-messenger-fix
+    messenger.transport.amqp.factory: '@App\Infrastructure\Messenger\Amqp\AmqpTransportFactory'
+
+    Redis:
+        class: Redis
+        calls:
+            - connect:
+                  - '%env(string:METRICS_REDIS_HOST)%'
+                  - '%env(int:METRICS_REDIS_PORT)%'
+
+    Symfony\Component\HttpFoundation\Session\Storage\Handler\RedisSessionHandler:
+        arguments:
+            - '@Redis'
+            - { 'prefix': 'bots_api_session_' }
+
+    App\Infrastructure\Encryption\CryptoEncryption:
+        arguments:
+            - '%encryption_key%'
+
+    App\Infrastructure\Bot\Messenger\MessengerMessagesDispatcher:
+        arguments:
+            $databaseQueueTable: '%doctrine_table_queue%'
+
+    App\Infrastructure\Bot\Telegram\TelegramHandler:
+        arguments:
+            - '@App\Infrastructure\Bot\Telegram\TelegramCommandGetter'
+            - '@App\Infrastructure\Bot\Telegram\TelegramMessagesGetter'
+            - '@App\Infrastructure\Bot\Telegram\TelegramUserChecker'
+            - '@App\Infrastructure\Bot\Messenger\MessengerMessagesDispatcher'
+            - '@App\Infrastructure\Bot\TemplateEngine\BaseTemplateEngine'
+            - '@App\Infrastructure\Bot\Telegram\TelegramBotGetter'
+
+    App\Infrastructure\Bot\Vk\VkHandler:
+        arguments:
+            - '@App\Infrastructure\Bot\Vk\VkCommandGetter'
+            - '@App\Infrastructure\Bot\Vk\VkMessageGetter'
+            - '@App\Infrastructure\Bot\Vk\VkUserChecker'
+            - '@App\Infrastructure\Bot\Messenger\MessengerMessagesDispatcher'
+            - '@App\Infrastructure\Bot\TemplateEngine\BaseTemplateEngine'
+            - '@App\Infrastructure\Bot\Vk\VkBotGetter'

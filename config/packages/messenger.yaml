@@ -1,0 +1,54 @@
+framework:
+    messenger:
+        # Uncomment this (and the failed transport below) to send failed messages to this transport for later handling.
+        # failure_transport: failed
+        reset_on_message: true
+
+        transports:
+            async:
+                dsn: '%env(RABBITMQ_DSN)%'
+                failure_transport: failed
+                retry_strategy:
+                    max_retries: 0
+                options:
+                    exchange:
+                        name: '%env(RABBIT_QUEUE)%'
+                    queues:
+                        '%env(RABBIT_QUEUE)%': ~
+            async_now:
+                dsn: '%env(RABBITMQ_DSN)%'
+                failure_transport: failed
+                retry_strategy:
+                    max_retries: 0
+                options:
+                    exchange:
+                        name: '%env(RABBIT_QUEUE_COMMAND)%'
+                    queues:
+                        '%env(RABBIT_QUEUE_COMMAND)%': ~
+            async_delay:
+                dsn: '%env(DOCTRINE_DSN)%'
+                failure_transport: failed
+                retry_strategy:
+                    max_retries: 0
+                options:
+                    use_notify: true
+                    table_name: '%doctrine_table_queue%'
+                    auto_setup: false
+                    check_delayed_interval: 10
+            failed:
+                dsn: '%env(DOCTRINE_DSN)%?queue_name=failed'
+                retry_strategy:
+                    max_retries: 0
+                    delay: 0
+                options:
+                    use_notify: true
+                    table_name: '%doctrine_table_queue%'
+                    auto_setup: false
+                    check_delayed_interval: 10
+
+        routing:
+            # Route your messages to the transports
+             App\Operation\Message\ExampleMessage: async
+             App\Operation\Message\MessengerUpdate: async_now
+             App\Operation\Message\MessengerMessageDelay: async_delay
+             App\Operation\Message\MessengerMessage: async
